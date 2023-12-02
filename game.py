@@ -58,33 +58,61 @@ fireball_imgs = [
     'fireball/24',
     'fireball/25',
     'fireball/26',
-    'fireball/27',
+    'fireball/27',  
     'fireball/28',
     'fireball/29',
     'fireball/30',
 ]
 
+slime_imgs = ['slime/idle/tile000',
+              'slime/idle/tile001',
+              'slime/idle/tile002',
+              'slime/idle/tile003',
+              'slime/idle/tile004',
+              'slime/idle/tile005',
+              'slime/idle/tile006',]
+
+slime_death_imgs = ['slime/death/tile000',
+                    'slime/death/tile001',
+                    'slime/death/tile002',
+                    'slime/death/tile003',
+                    'slime/death/tile004',
+                    'slime/death/tile005',
+                    'slime/death/tile006',
+]
+
 enemies = []
 
 # Initialize player Actor
+slime = Actor(slime_imgs[0])
+slime.images = slime_imgs
+
 player = Actor(player_walk_imgs[0])
 player.images = player_walk_imgs
 player.scale = 3
 player.left = 0
 player.y = HEIGHT / 2
+player.score = 0
+
 projs = []
+player.hp = random.randint(1,10)
+
+
+
 
 
 def update():
     # Animate the player character
     player.animate()
-
     # Check if the player is in the death animation state
     if player.image in player_death_imgs:
         # Reset player images to walking animations when death animation is complete
         if player.image == player_death_imgs[-1]:
+            print('done')
             player.images = player_walk_imgs
+        print(f'{player.image} pending..')
         return
+  
 
     # Player movement controls
     if keyboard.w:
@@ -97,6 +125,7 @@ def update():
     if keyboard.d:
         player.move_forward(5)
         player.flip_x = False
+
 
     # Boundary checks to keep the player within the screen
     if player.top < 0:
@@ -111,6 +140,7 @@ def update():
     # Shooting projectiles when SPACE key is pressed
     if keyboard.SPACE:
         p = Actor(fireball_imgs[0])
+        p.images = fireball_imgs
         p.pos = player.pos
         if player.flip_x:
             p.direction = 180
@@ -122,6 +152,7 @@ def update():
 
     # Remove projectiles that go off-screen
     for p in projs:
+        p.animate()
         if p.x < 0 or p.x > WIDTH:
             projs.remove(p)
         else:
@@ -130,6 +161,7 @@ def update():
     # Spawn enemies occasionally
     if random.randint(0, 100) < 1:
         e = Actor('slime/idle/tile000')  # Use a single image for simplicity
+        e.images= slime_imgs
         e.scale = 3
         e.x = WIDTH
         e.y = random.randint(10, HEIGHT - 10)
@@ -137,6 +169,24 @@ def update():
 
     # Update enemy positions and interactions
     for e in enemies:
+        e.animate()
+        if e.image in slime_death_imgs:
+            if e.image == slime_death_imgs[-1]:
+                enemies.remove(e)
+        else:
+            e.move_towards(player,random.randint(1,4))
+            if player.collide_pixel(e):
+                player.hp -= 1
+                player.images = player_death_imgs
+                enemies.remove(e)
+                print(player.hp)
+            else:
+                for p in projs:
+                    if p.collide_pixel(e):
+                        projs.remove(p)
+                        e.images = slime_death_imgs
+                        player.score += 1
+                    
         e.x -= 5  # Move enemies from right to left
         e.scale = 3  # Set the scale for the enemy (adjust as needed)
 
@@ -145,11 +195,15 @@ def update():
 
 def draw():
     screen.clear()
+    screen.draw.text(f'HP:{player.hp}',(10,10),fontsize=50)
+    screen.draw.text(f'SCORE:{player.score}',(50,50),fontsize=50)
     player.draw()
     for p in projs:
         p.draw()
     for e in enemies:
         e.draw()
+    if player.hp <= 0:
+        screen.draw.text(f'You Lose',(WIDTH/2-80,HEIGHT/2), fontsize=80)
 
 
 # Start the game
